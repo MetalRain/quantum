@@ -24,8 +24,6 @@ impl QBit {
     fn collapse(self: &Self, rng: &mut rand::rngs::ThreadRng) -> CBit {
         // Intuition, measure QBit get back CBit
         let probability = self.a.norm().powi(2);
-        //println!("P(is Zero) == ||{}|| ^ 2 == {}", self.a, probability);
-        //println!("P(is One) == ||{}|| ^ 2 == {}", self.b, (1.0-probability));
         let is_zero: bool = rng.gen_bool(probability);
         if is_zero {
             return CBit::Zero
