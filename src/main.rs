@@ -50,6 +50,7 @@ impl QBitVector {
     fn collapse(self: &Self, rng: &mut rand::rngs::ThreadRng) -> CBitVector {
         // Intuition, only one can be true
         let component_probabilities: Vec<f64> = self.components.iter()
+            // P(QBit (a, b) == CBit 0) = ||a||^2
             .map(|c| c.norm().powi(2))
             .collect();
         let distribution: WeightedIndex<f64> = WeightedIndex::new(&component_probabilities).unwrap();
@@ -68,14 +69,23 @@ impl QBitVector {
             bits: CBitVectorBits::from_iterator(size, result.into_iter()) }
     }
 
+    fn bit_flip(self: &Self) -> QBitVector {
+        let matrix = QBitVectorComponents::from_columns(&[
+            Vector2::new(cplx(0.0), cplx(1.0)),
+            Vector2::new(cplx(1.0), cplx(0.0)),
+        ]);
+        return QBitVector {
+            components: matrix * self.components.clone()
+        }
+    }
     
     fn hadamard(self: &Self) -> QBitVector {
-        let hadamard_matrix = QBitVectorComponents::from_columns(&[
+        let matrix = QBitVectorComponents::from_columns(&[
             Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
             Vector2::new(cplx(one_sqrt_two!()), cplx(-one_sqrt_two!()))
         ]);
         return QBitVector {
-            components: hadamard_matrix * self.components.clone()
+            components: matrix * self.components.clone()
         }
     }
 }
@@ -112,6 +122,7 @@ struct CBitVector {
     bits: CBitVectorBits
 }
 
+// TODO: Use na::Complex instead
 fn cplx(real: f64) -> num::complex::Complex64 {
     num::complex::Complex::new(real, 0.0)
 } 
@@ -149,4 +160,5 @@ fn main() {
     };
 
     println!("QBitVector {:#?}, after hadamard {:#?}", classical, classical.hadamard());
+    println!("QBitVector {:#?}, after bitflip {:#?}", classical, classical.bit_flip());
 }
