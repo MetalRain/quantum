@@ -1,9 +1,17 @@
 extern crate num;
 extern crate rand;
+extern crate nalgebra as na;
 
 use std::fmt;
 use rand::{thread_rng, Rng};
 use rand::distributions::{WeightedIndex, Distribution};
+use na::{U1, U2, Dynamic, Matrix, Vector2, VecStorage};
+
+macro_rules! one_sqrt_two {
+    () => {
+        1.0 / 2.0_f64.sqrt()
+    }
+}
 
 #[derive(Debug)]
 struct QBit {
@@ -31,10 +39,11 @@ impl fmt::Display for QBit {
     }
 }
 
+type QBitVectorComponents = Matrix<num::complex::Complex64, U2, Dynamic, VecStorage<num::complex::Complex64, U2, Dynamic>>;
+
 #[derive(Debug)]
 struct QBitVector {
-    size: usize,
-    components: Vec<num::complex::Complex64>
+    components: QBitVectorComponents
 }
 
 impl QBitVector {
@@ -51,17 +60,40 @@ impl QBitVector {
             selected_bit_index = (selected_component_index - 1) / 2;
         }
 
-        let mut result = Vec::with_capacity(self.size);
-        result.resize(self.size, CBit::Zero);
+        let size = self.components.nrows();
+        let mut result: Vec<CBit> = Vec::with_capacity(size);
+        result.resize(self.components.nrows(), CBit::Zero);
         result[selected_bit_index] = CBit::One;
-        return CBitVector { size: self.size, bits: result }
+        return CBitVector {
+            bits: CBitVectorBits::from_iterator(size, result.into_iter()) }
+    }
+
+    
+    fn hadamard(self: &Self) -> QBitVector {
+        let hadamard_matrix = QBitVectorComponents::from_columns(&[
+            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
+            Vector2::new(cplx(one_sqrt_two!()), cplx(-one_sqrt_two!()))
+        ]);
+        return QBitVector {
+            components: hadamard_matrix * self.components.clone()
+        }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq)]
 enum CBit {
     Zero,
     One
+}
+
+impl PartialEq for CBit {
+    fn eq(self: &Self, other: &Self) -> bool{
+        match (self, other) {
+            (CBit::Zero, CBit::Zero) => true,
+            (CBit::One, CBit::One) => true,
+            _ => false
+        }
+    }
 }
 
 impl fmt::Display for CBit {
@@ -73,11 +105,16 @@ impl fmt::Display for CBit {
     }
 }
 
+type CBitVectorBits = Matrix::<CBit, U1, Dynamic, VecStorage<CBit, U1, Dynamic>>;
+
 #[derive(Debug)]
 struct CBitVector {
-    size: usize,
-    bits: Vec<CBit>
+    bits: CBitVectorBits
 }
+
+fn cplx(real: f64) -> num::complex::Complex64 {
+    num::complex::Complex::new(real, 0.0)
+} 
 
 /*
 fn cnot(control: &QBit, value: &QBit) -> QBit {
@@ -89,20 +126,27 @@ fn main() {
     let mut rng = thread_rng();
 
     let coin = QBit {
-        a: num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
-        b: num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0)
+        a: cplx(one_sqrt_two!()),
+        b: cplx(one_sqrt_two!())
     };
     println!("QBit {}, collapses to CBit {}", coin, coin.collapse(&mut rng));
 
     let pair = QBitVector {
-        size: 2,
-        components: vec![
-            num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
-            num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
-            num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
-            num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0)
-        ]
+        components: QBitVectorComponents::from_columns(&[
+            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
+            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!()))
+        ])
     };
 
-    println!("QBitVector {:#?}, collapses to CBitVector {:#?}", pair, pair.collapse(&mut rng))
+    println!("QBitVector {:#?}, collapses to CBitVector {:#?}", pair, pair.collapse(&mut rng));
+
+    let classical = QBitVector {
+        components: QBitVectorComponents::from_columns(&[
+            Vector2::new(cplx(1.0), cplx(0.0)),
+            Vector2::new(cplx(0.0), cplx(1.0)),
+            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
+        ])
+    };
+
+    println!("QBitVector {:#?}, after hadamard {:#?}", classical, classical.hadamard());
 }
