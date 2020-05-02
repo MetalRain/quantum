@@ -4,7 +4,8 @@ extern crate nalgebra as na;
 
 use std::fmt;
 use rand::{thread_rng, Rng};
-use na::{Vector4, Matrix4};
+use na::{Vector2, Matrix2, Vector4, Matrix4};
+use na::linalg::{SVD};
 
 macro_rules! one_sqrt_two {
     () => {
@@ -95,23 +96,34 @@ fn cnot(inputs: Vector4<num::complex::Complex64>) -> Vector4<num::complex::Compl
     matrix * inputs
 }
 
-
 fn tensor_deproduct(inputs: Vector4<num::complex::Complex64>) -> (QBit, QBit) {
-    // FIXME: use inverse of Kronecker product
-    // to get back bit pair representation
-    // https://math.stackexchange.com/a/60441
+    // FIXME: Figure out how to reverse vector product
+    let m = Matrix2::new(inputs[0], inputs[1], inputs[2], inputs[3]);
+    // a * b = M = u * S * v_t =>
+    // a = u
+    // b = S * v_t
+    //println!("M = {:#?}", m);
+    let eps = 1e-9_f64;
+    let svd = SVD::try_new(m, true, true, eps, 10).unwrap();
+    //println!("SVD = {:#?}", svd);
+    let c = Vector2::new(cplx(0.0), cplx(1.0));
+    //println!("c = {:#?}", c);
+    let result = svd.solve(&c, eps);
+    let a = svd.u.unwrap();
+    let b = Matrix2::from_diagonal(
+        &Vector2::new(cplx(svd.singular_values[0]), cplx(svd.singular_values[1]))
+    ) * svd.v_t.unwrap();
     (
         QBit {
-            a: inputs[0],
-            b: inputs[1]
+            a: a[0],
+            b: a[1]
         },
         QBit {
-            a: inputs[2],
-            b: inputs[3]
+            a: b[0],
+            b: b[1]
         }
     )
 }
-
 
 
 fn main() {
@@ -133,13 +145,16 @@ fn test_op(op: fn(QBit, QBit) -> (QBit, QBit), expect_output: CBit, expect_input
 
     let (output_after, input_after) = op(output, input);
 
-    let output_result = output_after.hadamard().collapse(&mut rng);
-    let input_result = input_after.hadamard().collapse(&mut rng);
+    let output_normalized = output_after.hadamard();
+    let output_result = output_normalized.collapse(&mut rng);
+
+    let input_normalized = input_after.hadamard();
+    let input_result = input_normalized.collapse(&mut rng);
     if output_result != expect_output {
-        panic!("{}: output {} did not match expectation {}", op_name, output_result, expect_output);
+        panic!("{}: output {} (normalized {}) did not match expectation {}", op_name, output_result, output_normalized, expect_output);
     }
     if input_result != expect_input {
-        panic!("{}: input {} did not match expectation {}", op_name, input_result, expect_input);
+        panic!("{}: input {} (normalized {}) did not match expectation {}", op_name, input_result, input_normalized, expect_input);
     }
 }
 
@@ -156,6 +171,7 @@ fn op_identity(output: QBit, input: QBit) -> (QBit, QBit) {
     let v = tensor_product(&input, &output);
     let v_result = cnot(v);
     let (input_result, output_result) = tensor_deproduct(v_result);
+    println!("in: {}, out: {}", input_result, output_result);
     (output_result, input_result)
 }
 
@@ -163,6 +179,7 @@ fn op_negation(output: QBit, input: QBit) -> (QBit, QBit) {
     let v = tensor_product(&input, &output);
     let v_result = cnot(v);
     let (input_result, output_result) = tensor_deproduct(v_result);
+    println!("in: {}, out: {}", input_result, output_result);
     (output_result.bit_flip(), input_result)
 }
 
