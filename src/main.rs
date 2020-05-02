@@ -4,43 +4,54 @@ extern crate rand;
 use std::fmt;
 use rand::{thread_rng, Rng};
 
-struct Qbit {
+struct QBit {
+    // QBit (1, 0) is CBit 0
+    // QBit (0, 1) is CBit 1
     a: num::complex::Complex64,
     b: num::complex::Complex64
 }
 
-impl Qbit {
-    fn collapse(self: &Self, rng: &mut rand::rngs::ThreadRng) -> Qbit {
-        // P(bit == (1, 0)) = ||a||^2
+impl QBit {
+    fn collapse(self: &Self, rng: &mut rand::rngs::ThreadRng) -> CBit {
+        // Intuition, measure QBit get beck CBit
+        // P(QBit (a, b) == CBit 0) = ||a||^2
         let is_zero: bool = rng.gen_bool(self.a.norm().powi(2));
         if is_zero {
-            return Qbit {
-                a: num::complex::Complex::new(1.0, 0.0),
-                b: num::complex::Complex::new(0.0, 0.0)
-            }
+            return CBit::Zero
         }
-        return Qbit {
-            a: num::complex::Complex::new(0.0, 0.0),
-            b: num::complex::Complex::new(1.0, 0.0)
-        }
+        return CBit::One
     }
 }
 
-impl fmt::Display for Qbit {
+impl fmt::Display for QBit {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({}, {})", self.a, self.b)
     }
 }
 
+enum CBit {
+    Zero,
+    One
+}
+
+impl fmt::Display for CBit {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CBit::Zero => write!(f, "0"),
+            CBit::One => write!(f, "1")
+        }
+    }
+}
+
 /*
-fn cnot(control: &Qbit, value: &Qbit) -> Qbit {
+fn cnot(control: &QBit, value: &QBit) -> QBit {
     if (control)
 }
 */
 
 fn main() {
     let mut rng = thread_rng();
-    let b = Qbit {
+    let b = QBit {
         a: num::complex::Complex::new(0.5, 0.0),
         b: num::complex::Complex::new(0.5, 0.0)
     };
