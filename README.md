@@ -3,6 +3,15 @@
 This repository is collection of experiments for learning quantum computing.
 
 
+## Running
+
+Requires Rust and Cargo.
+
+Run with:
+```sh
+cargo run
+```
+
 ## Resources
 
 ### Quantum Computing for Computer Scientists

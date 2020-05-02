@@ -48,7 +48,7 @@ impl QBitVector {
         
         let mut selected_bit_index = selected_component_index / 2; // Even
         if selected_component_index % 2 == 1 { // Odd
-            let selected_bit_index = (selected_component_index - 1) / 2;
+            selected_bit_index = (selected_component_index - 1) / 2;
         }
 
         let mut result = Vec::with_capacity(self.size);
@@ -94,7 +94,7 @@ fn main() {
     };
     println!("QBit {}, collapses to CBit {}", coin, coin.collapse(&mut rng));
 
-    let coins = QBitVector {
+    let pair = QBitVector {
         size: 2,
         components: vec![
             num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
@@ -104,5 +104,5 @@ fn main() {
         ]
     };
 
-    println!("QBitVector {:#?}, collapses to CBitVector {:#?}", coins, coins.collapse(&mut rng))
+    println!("QBitVector {:#?}, collapses to CBitVector {:#?}", pair, pair.collapse(&mut rng))
 }
