@@ -71,8 +71,8 @@ impl QBitVector {
 
     fn bit_flip(self: &Self) -> QBitVector {
         let matrix = QBitVectorComponents::from_columns(&[
-            Vector2::new(cplx(0.0), cplx(1.0)),
-            Vector2::new(cplx(1.0), cplx(0.0)),
+            qbit_1(),
+            qbit_0()
         ]);
         return QBitVector {
             components: matrix * self.components.clone()
@@ -87,6 +87,17 @@ impl QBitVector {
         return QBitVector {
             components: matrix * self.components.clone()
         }
+    }
+}
+
+impl fmt::Display for QBitVector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.components
+            .column_iter()
+            .for_each(|column| {
+                write!(f, "\n({}, {})", column[0], column[1]);
+            });
+        Ok(())
     }
 }
 
@@ -122,10 +133,16 @@ struct CBitVector {
     bits: CBitVectorBits
 }
 
-// TODO: Use na::Complex instead
-fn cplx(real: f64) -> num::complex::Complex64 {
-    num::complex::Complex::new(real, 0.0)
-} 
+impl fmt::Display for CBitVector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.bits
+            .column_iter()
+            .for_each(|column| {
+                write!(f, "\n{}", column[0]);
+            });
+        Ok(())
+    }
+}
 
 /*
 fn cnot(control: &QBit, value: &QBit) -> QBit {
@@ -142,23 +159,43 @@ fn main() {
     };
     println!("QBit {}, collapses to CBit {}", coin, coin.collapse(&mut rng));
 
-    let pair = QBitVector {
-        components: QBitVectorComponents::from_columns(&[
-            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
-            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!()))
-        ])
-    };
+    let pair = qbit_vector(&[qbit_super(), qbit_super()]);
 
-    println!("QBitVector {:#?}, collapses to CBitVector {:#?}", pair, pair.collapse(&mut rng));
+    println!("QBitVector {}, collapses to CBitVector {}", pair, pair.collapse(&mut rng));
 
-    let classical = QBitVector {
-        components: QBitVectorComponents::from_columns(&[
-            Vector2::new(cplx(1.0), cplx(0.0)),
-            Vector2::new(cplx(0.0), cplx(1.0)),
-            Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!())),
-        ])
-    };
+    let classical = qbit_vector(&[
+        qbit_0(),
+        qbit_1(),
+        qbit_super()
+    ]);
 
-    println!("QBitVector {:#?}, after hadamard {:#?}", classical, classical.hadamard());
-    println!("QBitVector {:#?}, after bitflip {:#?}", classical, classical.bit_flip());
+    println!("QBitVector {}, after hadamard {}", classical, classical.hadamard());
+    println!("QBitVector {}, after bitflip {}", classical, classical.bit_flip());
+}
+
+
+/* Helper functions */
+
+
+// TODO: Use na::Complex instead
+fn cplx(real: f64) -> num::complex::Complex64 {
+    num::complex::Complex::new(real, 0.0)
+}
+
+fn qbit_vector(bits: &[Vector2<num::complex::Complex64>]) -> QBitVector {
+    QBitVector {
+        components: QBitVectorComponents::from_columns(bits)
+    }
+}
+
+fn qbit_0() -> Vector2<num::complex::Complex64> {
+    Vector2::new(cplx(1.0), cplx(0.0))
+}
+
+fn qbit_1() -> Vector2<num::complex::Complex64> {
+    Vector2::new(cplx(0.0), cplx(1.0))
+}
+
+fn qbit_super() -> Vector2<num::complex::Complex64> {
+    Vector2::new(cplx(one_sqrt_two!()), cplx(one_sqrt_two!()))
 }
