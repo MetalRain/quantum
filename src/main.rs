@@ -51,9 +51,9 @@ fn cnot(control: &QBit, value: &QBit) -> QBit {
 
 fn main() {
     let mut rng = thread_rng();
-    let b = QBit {
-        a: num::complex::Complex::new(0.5, 0.0),
-        b: num::complex::Complex::new(0.5, 0.0)
+    let coin = QBit {
+        a: num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0),
+        b: num::complex::Complex::new(1.0 / 2.0_f64.sqrt(), 0.0)
     };
-    println!("QBit {}, collapses to CBit {}", b, b.collapse(&mut rng))
+    println!("QBit {}, collapses to CBit {}", coin, coin.collapse(&mut rng))
 }
